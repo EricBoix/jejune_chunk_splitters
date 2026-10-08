@@ -3,19 +3,21 @@
 ## Table of contents<!-- omit in toc -->
 
 - [Introduction](#introduction)
-- [Running with jejune CLI](#running-with-jejune-cli)
+- [Installation as a jejune-cli plugin](#installation-as-a-jejune-cli-plugin)
+- [Usage via jejune CLI](#usage-via-jejune-cli)
 - [Running with Docker](#running-with-docker)
 - [Running standalone](#running-standalone)
 - [Splitting strategies](#splitting-strategies)
-- [Next step: knowledge-graph extraction](#next-step-knowledge-graph-extraction)
 
 ## Introduction
 
-This repository provides three markdown-to-JSON splitter scripts used to
-prepare `jejune_doc_*` documents for knowledge-graph extraction.
+This repository is a [`jejune-cli`](https://github.com/EricBoix/jejune_cli)
+plugin that extends the **doc-steward role** with chunk-splitting commands.
 
-Each splitter reads document metadata from a `manifest.yaml` file (located at
-the root of a `jejune_doc_*` repository) and writes a JSON file of
+It provides three markdown-to-JSON splitter scripts used to prepare
+`jejune_doc_*` documents for knowledge-graph extraction.  Each splitter reads
+document metadata from a `manifest.yaml` file (located at the root of a
+`jejune_doc_*` repository) and writes a JSON file of
 [LangChain Documents](https://reference.langchain.com/python/langchain-core/documents)
 that can be inspected before feeding them into the graph extractor.
 
@@ -27,26 +29,66 @@ The three available splitting strategies are:
 | `split_by_paragraphs.py` | one chunk per paragraph |
 | `split_by_sentences.py` | one chunk per sentence (`nltk.sent_tokenize`) |
 
-## Running with jejune CLI
+## Installation as a jejune-cli plugin
 
-Install and configure [`jejune_cli`](https://github.com/EricBoix/jejune_cli),
-then build the chunk-splitters Docker image once:
+Install `jejune-cli` first, then install this plugin from the repository:
+
+```bash
+uv pip install git+https://github.com/EricBoix/jejune_chunk_splitters.git
+```
+
+Or in a doc-steward workspace, let `jejune-cli` manage it:
+
+```bash
+jejune plugin-packages install
+```
+
+Verify the plugin is wired:
+
+```bash
+jejune doctor          # chunk-splitters row should appear
+jejune chunk-splitters --help
+```
+
+## Usage via jejune CLI
+
+Build the chunk-splitters Docker image once:
 
 ```bash
 jejune chunk-splitters build
 ```
 
-Split a document (the `manifest.yaml` is resolved automatically):
+General form (the `manifest.yaml` is resolved automatically):
 
 ```bash
-# Default splitter: headers
-jejune chunk-splitters split /path/to/jejune_doc_<name>
+jejune chunk-splitters split <DIR> --splitter [headers|paragraphs|sentences]
+```
 
-# Choose a different strategy
+`<DIR>` defaults to the current working directory, so from inside a
+`jejune_doc_<name>` repository these short forms are equivalent:
+
+```bash
+jejune chunk-splitters split --splitter headers
+jejune chunk-splitters split --splitter paragraphs
+jejune chunk-splitters split --splitter sentences
+```
+
+`--splitter` itself defaults to `headers`, so the minimal invocation is just:
+
+```bash
+jejune chunk-splitters split
+```
+
+With an explicit path:
+
+```bash
 jejune chunk-splitters split /path/to/jejune_doc_<name> --splitter paragraphs
-jejune chunk-splitters split /path/to/jejune_doc_<name> --splitter sentences
+```
 
-# Write output to a specific file (path relative to /data inside the container)
+To write the output to a specific file (path relative to `/data` inside the
+container):
+
+```bash
 jejune chunk-splitters split /path/to/jejune_doc_<name> \
   --splitter headers --output my_chunks.json
 ```
@@ -158,16 +200,3 @@ python split_by_sentences.py \
   --output_dir result_data \
   --output blended_-_Sentences_as_LangChain_document.json
 ```
-
-## Next step: knowledge-graph extraction
-
-Feed the JSON output into
-[`jejune_extract_knowledge_graph`](https://github.com/EricBoix/jejune_extract_knowledge_graph)
-to build a Neo4j knowledge graph:
-
-```bash
-jejune graph extract /path/to/jejune_doc_<name>
-```
-
-Requires a running Neo4j instance and a configured LLM — see
-[`jejune_cli`](https://github.com/EricBoix/jejune_cli) for setup instructions.
