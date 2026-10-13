@@ -16,7 +16,6 @@ def _check_availability() -> tuple[bool, str]:
 plugin = PluginDescription(
     name="chunk-splitters",
     group=chunk_splitters_group,
-    avail_hint="run `jejune chunk-splitters build`",
     check_availability=_check_availability,
     target_role="doc-steward",
     component=_component,

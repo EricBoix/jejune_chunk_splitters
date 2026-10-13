@@ -18,7 +18,7 @@ class CompChunkSplitters(ContComp):
         super().__init__(
             name="chunk-splitters",
             image_name="jejune:chunk_splitters",
-            hint="run `jejune chunk-splitters build`",
+            hint="run `jejune build` (or `jejune chunk-splitters build`)",
         )
         # cli_name intentionally not set: help display is via target_role in PluginDescription
 
