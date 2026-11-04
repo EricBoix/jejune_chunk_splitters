@@ -2,14 +2,15 @@
 
 import click
 
-from .component import CompChunkSplitters
+from jejune_cli.app_context import AppContext
+
+from .component_cont_chunk_splitters import CompChunkSplitters
 
 
 @click.group("chunk-splitters", short_help="Split documents into JSON chunks")
 @click.pass_context
 def chunk_splitters_group(ctx):
     """Split a jejune_doc_<name> catalog into JSON chunks for knowledge-graph extraction."""
-    from jejune_cli.app_context import AppContext
     ctx.obj = ctx.find_object(AppContext).component_registry.get("chunk-splitters")
 
 

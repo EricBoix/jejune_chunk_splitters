@@ -5,6 +5,7 @@ from pathlib import Path
 import click
 
 from jejune_cli.component_containerized import ContComp
+from jejune_cli.containerized_context import ContainerizedContext
 
 
 class CompChunkSplitters(ContComp):
@@ -14,11 +15,12 @@ class CompChunkSplitters(ContComp):
         "sentences": "split_by_sentences.py",
     }
 
-    def __init__(self) -> None:
+    def __init__(self, context: ContainerizedContext) -> None:
         super().__init__(
             name="chunk-splitters",
             image_name="jejune:chunk_splitters",
             hint="run `jejune build` (or `jejune chunk-splitters build`)",
+            context=context,
         )
         # cli_name intentionally not set: help display is via target_role in PluginDescription
 
