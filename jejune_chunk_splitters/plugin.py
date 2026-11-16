@@ -1,6 +1,6 @@
 """jejune plugin entry point for chunk-splitters."""
 
-from jejune_cli.plugin_description import PluginDescription
+from jejune_cli.plugins.plugin_description import PluginDescription
 
 from .component_cont_chunk_splitters import CompChunkSplitters
 from .commands import chunk_splitters_group

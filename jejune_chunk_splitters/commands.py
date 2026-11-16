@@ -2,7 +2,7 @@
 
 import click
 
-from jejune_cli.app_context import AppContext
+from jejune_cli.core.app_context import AppContext
 
 from .component_cont_chunk_splitters import CompChunkSplitters
 
