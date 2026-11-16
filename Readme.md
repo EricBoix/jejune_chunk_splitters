@@ -157,6 +157,24 @@ All splitters share these output flags:
 `--catalog` is repeatable to blend multiple documents; `--output` is then
 required.
 
+### Markdown blockquotes
+
+A markdown blockquote (`> ...`, e.g. the pull quotes of a book) is split like
+any other paragraph. By default blockquotes are kept, and the chunks of the
+paragraphs and sentences splitters carry an `is_blockquote` boolean in their
+metadata (`true` within a blockquote) so that the consumer can tell them apart.
+
+| Flag | Meaning |
+|------|---------|
+| `--exclude-blockquotes` | leave the blockquotes out of the chunks. They then do not consume a `paragraph_number` (the numbering counts the remaining paragraphs only). |
+
+Through the jejune CLI the flag is forwarded to the splitter as an extra
+argument:
+
+```bash
+jejune chunk-splitters split --splitter paragraphs -- --exclude-blockquotes
+```
+
 ### Split by header sections
 
 One chunk per markdown section (all paragraphs under a heading merged).
