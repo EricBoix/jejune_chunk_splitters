@@ -14,8 +14,31 @@ def load_manifest(manifest_path: str) -> tuple[dict, Path]:
     return manifest, path.parent
 
 
+def blockquote_depth_change(token_type: str) -> int:
+    """Change of the blockquote nesting depth brought by a markdown-it token.
+
+    The paragraphs of a blockquote are 'paragraph_open' tokens (like the other
+    paragraphs) enclosed between a 'blockquote_open' and a 'blockquote_close'
+    token: tracking the depth tells whether a paragraph is within a blockquote.
+    """
+    if token_type == "blockquote_open":
+        return 1
+    if token_type == "blockquote_close":
+        return -1
+    return 0
+
+
 def add_common_arguments(parser: argparse.ArgumentParser, modality: str) -> None:
-    """Add --catalog, --output_dir, --output to an ArgumentParser."""
+    """Add --catalog, --output_dir, --output, --exclude-blockquotes to an ArgumentParser."""
+    parser.add_argument(
+        "--exclude-blockquotes",
+        action="store_true",
+        help=(
+            "Leave the markdown blockquotes (e.g. the pull quotes of a book) out "
+            "of the chunks. They do not consume a paragraph_number. "
+            "By default blockquotes are kept."
+        ),
+    )
     parser.add_argument(
         "--catalog",
         action="append",
@@ -59,7 +82,9 @@ def resolve_output_path(args: argparse.Namespace, modality: str) -> Path | None:
     return out_dir / filename
 
 
-def process_manifest(manifest_path: str, split_fn) -> list[dict]:
+def process_manifest(
+    manifest_path: str, split_fn, exclude_blockquotes: bool = False
+) -> list[dict]:
     """Load one manifest and run split_fn on its markdown file."""
     manifest, doc_dir = load_manifest(manifest_path)
     markdown_file = doc_dir / manifest["markdown_file"]
@@ -67,7 +92,9 @@ def process_manifest(manifest_path: str, split_fn) -> list[dict]:
         "jejune_source_name": markdown_file.name,
         "jejune_source_slug": manifest["slug"],
     }
-    return split_fn(markdown_file.read_text(encoding="utf-8"), metadata_base)
+    return split_fn(
+        markdown_file.read_text(encoding="utf-8"), metadata_base, exclude_blockquotes
+    )
 
 
 def write_output(chunks: list[dict], output_path: Path | None) -> None:
@@ -87,5 +114,7 @@ def run(split_fn, modality: str, description: str) -> None:
     output_path = resolve_output_path(args, modality)
     chunks = []
     for manifest_path in args.catalog:
-        chunks.extend(process_manifest(manifest_path, split_fn))
+        chunks.extend(
+            process_manifest(manifest_path, split_fn, args.exclude_blockquotes)
+        )
     write_output(chunks, output_path)

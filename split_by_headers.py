@@ -5,19 +5,25 @@ one header section. Header hierarchy (h1/h2/h3) is tracked in metadata and
 reset when a heading of equal or higher level is encountered.
 Headers inside fenced code blocks are ignored (they appear as 'fence' tokens,
 not 'heading_open' tokens in the markdown-it token stream).
+
+The paragraphs of a markdown blockquote ("> ...") are paragraphs like the others
+(a section chunk does not tell them apart). With exclude_blockquotes they are
+left out of the section text.
 """
 from markdown_it import MarkdownIt
 
-from _splitter_common import run
+from _splitter_common import blockquote_depth_change, run
 
 _MODALITY = "Headers"
 
 
-def split(markdown_text: str, metadata_base: dict) -> list[dict]:
+def split(markdown_text: str, metadata_base: dict,
+          exclude_blockquotes: bool = False) -> list[dict]:
     tokens = MarkdownIt().parse(markdown_text)
     chunks = []
     headers: dict[int, str] = {}
     paragraphs: list[str] = []
+    blockquote_depth = 0
 
     def flush() -> None:
         if not paragraphs:
@@ -30,6 +36,7 @@ def split(markdown_text: str, metadata_base: dict) -> list[dict]:
     i = 0
     while i < len(tokens):
         tok = tokens[i]
+        blockquote_depth += blockquote_depth_change(tok.type)
         if tok.type == "heading_open":
             flush()
             level = int(tok.tag[1])
@@ -38,7 +45,8 @@ def split(markdown_text: str, metadata_base: dict) -> list[dict]:
                 del headers[deeper]
             i += 3
         elif tok.type == "paragraph_open":
-            paragraphs.append(tokens[i + 1].content)
+            if not (exclude_blockquotes and blockquote_depth > 0):
+                paragraphs.append(tokens[i + 1].content)
             i += 3
         else:
             i += 1
