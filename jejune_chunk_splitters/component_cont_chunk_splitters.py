@@ -9,6 +9,7 @@ from jejune_cli.core.containerized_context import ContainerizedContext
 
 
 class CompChunkSplitters(ContComp):
+    REPOSITORY_NAME = "jejune_chunk_splitters"
     SPLITTERS = {
         "headers": "split_by_headers.py",
         "paragraphs": "split_by_paragraphs.py",
@@ -23,6 +24,9 @@ class CompChunkSplitters(ContComp):
             context=context,
         )
         # cli_name intentionally not set: help display is via target_role in PluginDescription
+        # This plugin's sources are a repository of the ecosystem (listed by
+        # `ecosystem status`, updated by `ecosystem update`)
+        context.ecosystem.register_repository(self.name, self.REPOSITORY_NAME)
 
     def check(self) -> tuple[str, str]:
         return ("ok", "") if self.is_built() else ("warn", "image not built")
@@ -30,7 +34,7 @@ class CompChunkSplitters(ContComp):
     def build(self, no_cache: bool = False) -> None:
         if not self.build_context:
             self.build_context = self._context.git_server.remote_git_url(
-                "jejune_chunk_splitters", ":DockerContext"
+                self.REPOSITORY_NAME, ":DockerContext"
             )
         super().build(no_cache)
 
