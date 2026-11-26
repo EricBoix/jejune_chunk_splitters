@@ -175,6 +175,45 @@ argument:
 jejune chunk-splitters split --splitter paragraphs -- --exclude-blockquotes
 ```
 
+### Page markers
+
+The markdown that `pdf-to-markdown` writes from a PDF can carry page markers,
+html comments that stand where a page starts:
+
+```markdown
+<!-- page reader=iv pdf=4 -->
+```
+
+`reader` is the number printed on the page (an integer, or e.g. `Cover` or a
+roman numeral), `pdf` is the page as a PDF viewer numbers it (the first page is
+1). Between two blocks the marker is a block of its own; within a paragraph it
+stands on a line of its own (a newline before and after, no blank line), or is
+glued after the last sentence of the previous page. A sentence belongs to the
+page where it starts. The splitters join a marker on its own line back first, so
+a paragraph that such a marker interrupts stays one paragraph (same chunks, same
+paragraph and sentence numbers as with the glued marker).
+
+When the markdown holds markers every chunk carries the page where it starts:
+
+| Metadata | Meaning |
+| --- | --- |
+| `page` | the printed page number (an integer when it is one, otherwise the text) |
+| `pdf_page` | the page of the PDF, the first page being 1 |
+
+A section chunk (headers splitter) carries the page of its header, a paragraph
+chunk the page where the paragraph starts, a sentence chunk its own page. A
+markdown without markers gives chunks without these two keys.
+
+The markers are not part of `page_content`: a sentence chunk stays a literal
+part of the markdown (which the "Open in Markdown" function of the markdown
+browser relies on). A paragraph or a section that goes over a page break is not
+a literal part of the markdown anymore, since the marker standing inside it is
+removed from its text.
+
+The html comments of a header (e.g. the markdownlint comment that
+`pdf-to-markdown` appends to a title ending with a punctuation) are removed from
+the `h1`/`h2`/`h3` values.
+
 ### Split by header sections
 
 One chunk per markdown section (all paragraphs under a heading merged).

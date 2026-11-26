@@ -10,10 +10,16 @@ any header change), and sentence_number (1-based within the paragraph).
 A paragraph that belongs to a markdown blockquote ("> ...") is a paragraph like
 the others, its sentences being flagged with is_blockquote. With
 exclude_blockquotes it produces no chunk and does not consume a paragraph_number.
+
+When the markdown holds page markers (see _page_markers.py) each sentence also
+carries the page where it starts, as the page and pdf_page metadata. The page
+markers are not part of page_content: a sentence stays a literal part of the
+markdown.
 """
 import nltk
 from markdown_it import MarkdownIt
 
+from _page_markers import PageMarkers, PageTracker
 from _splitter_common import blockquote_depth_change, run
 
 _MODALITY = "Sentences"
@@ -27,38 +33,51 @@ for _resource in ("punkt", "punkt_tab"):
 
 def split(markdown_text: str, metadata_base: dict,
           exclude_blockquotes: bool = False) -> list[dict]:
-    tokens = MarkdownIt().parse(markdown_text)
+    tokens = MarkdownIt().parse(PageMarkers.join_own_line(markdown_text))
     chunks = []
     headers: dict[int, str] = {}
     para_number = 0
     blockquote_depth = 0
+    pages = PageTracker()
 
     i = 0
     while i < len(tokens):
         tok = tokens[i]
         blockquote_depth += blockquote_depth_change(tok.type)
-        if tok.type == "heading_open":
+        if tok.type == "html_block":
+            pages.observe(tok)
+            i += 1
+        elif tok.type == "heading_open":
             level = int(tok.tag[1])
-            headers[level] = tokens[i + 1].content
+            headers[level] = PageMarkers.strip_comments(tokens[i + 1].content)
             for deeper in [k for k in headers if k > level]:
                 del headers[deeper]
             para_number = 0
             i += 3
         elif tok.type == "paragraph_open":
             is_blockquote = blockquote_depth > 0
+            # The markers of an excluded blockquote still change the page
+            paragraph = pages.read_paragraph(tokens[i + 1].content)
             if is_blockquote and exclude_blockquotes:
                 i += 3
                 continue
             para_number += 1
+            sentence_start = 0
             for sent_number, sentence in enumerate(
-                nltk.sent_tokenize(tokens[i + 1].content), 1
+                nltk.sent_tokenize(paragraph.text), 1
             ):
+                # The page is the one of the place where the sentence starts
+                sentence_start = max(
+                    paragraph.text.find(sentence, sentence_start), sentence_start
+                )
                 meta = {**metadata_base, **{f"h{k}": v for k, v in headers.items()},
                         "paragraph_number": para_number,
                         "sentence_number": sent_number,
-                        "is_blockquote": is_blockquote}
+                        "is_blockquote": is_blockquote,
+                        **paragraph.page_at(sentence_start)}
                 chunks.append({"__document__": True, "metadata": meta,
                                 "page_content": sentence})
+                sentence_start += len(sentence)
             i += 3
         else:
             i += 1
